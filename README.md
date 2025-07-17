@@ -1,1 +1,1 @@
-# rest-apis-project
+The project is all about REST API with Flask modules, visualizing it through swagger ui and extra security by adding the tokens. 
