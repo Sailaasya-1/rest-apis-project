@@ -1,6 +1,9 @@
+import os
+import requests
 from flask_smorest import abort, Blueprint
-from schemas import UserSchema
+from schemas import UserSchema, UserRegisterSchema
 from models import UserModel
+from sqlalchemy import or_
 from db import db
 from blocklist import BLOCKLIST
 from flask.views import MethodView
@@ -13,20 +16,41 @@ from flask_jwt_extended import create_access_token,create_refresh_token, get_jwt
 
 blp = Blueprint("Users", "users", description = "Operation on users")
 
+#The function from the mail gun to send the emails to the users.
+def send_simple_message(to, subject, body):
+    domain = os.getenv("MAILGUN_DOMAIN")
+    return requests.post(
+        f"https://api.mailgun.net/v3/{domain}/messages",
+        auth=("api", os.getenv("MAILGUN_API_KEY")),
+        data={
+            "from": f"GSL <mailgun@{domain}>",
+            "to": [to],
+            "subject": subject,
+            "text": body
+        }
+    )
+
+
 @blp.route('/register')
 class UserRegister(MethodView):
-    @blp.arguments(UserSchema)
+    @blp.arguments(UserRegisterSchema)
     def post(self, user_data):
-        if UserModel.query.filter(UserModel.username == user_data['username']).first():
+        if UserModel.query.filter(
+            or_(
+                UserModel.username == user_data['username'],
+                UserModel.email == user_data['email']
+        )).first():
             abort(409, message = "A user with that username already exists.")
         
         user = UserModel(
             username = user_data['username'],
-            password = pbkdf2_sha256.hash(user_data['password'])
+            password = pbkdf2_sha256.hash(user_data['password']),
+            email = user_data['email']
         )
         db.session.add(user)
         db.session.commit()
 
+        send_simple_message( to = user.email, subject = "Successffuly signed up", body = f"Hi {user.username}! You have successfully signed up to the Stores REST API.")
         return {"message":"user created successful"}, 201
 
 
