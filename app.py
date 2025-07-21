@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager, jwt_required
 from flask_migrate import Migrate
+from dotenv import load_dotenv
 
 import models #same as calling models.__init__
 from db import db
@@ -18,6 +19,9 @@ def create_app(db_url = None):
 
     #Factory pattern
     app = Flask(__name__)
+
+    #This function loads the env file and calls the DBURL this loads the Postgresql link.
+    load_dotenv()
 
     #We need to register these blueprints with API
     app.config['PROGATE_EXCEPTIONS'] = True #extension that occurs hidden inside the extension of flask to propogate 
